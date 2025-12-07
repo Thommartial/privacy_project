@@ -11,3 +11,14 @@
 - `data/` - Dataset files
 - `outputs/` - Results, models, plots
 - `configs/` - Configuration files
+---
+
+## Authors
+
+- **Lanre Atoye** - University of Guelph
+- **Ekwelle Epalle Thomas Martial** - University of Guelph
+
+## Course
+
+CIS*6550 - Privacy, Compliance, and Human Cyber  
+Fall 2025
