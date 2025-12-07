@@ -1,0 +1,54 @@
+[
+  {
+    "split": "train",
+    "samples": 3500,
+    "total_tokens": 91563,
+    "true_pii_tokens": 25610,
+    "pred_pii_tokens": 13149,
+    "precision": 0.4358506350292798,
+    "recall": 0.22377977352596642,
+    "f1_score": 0.29572486390257746
+  },
+  [
+    {
+      "text": "Dear Baron, my family is interested in starting th...",
+      "true_pii": 10,
+      "pred_pii": 3,
+      "precision": 0.3333333333333333,
+      "recall": 0.1,
+      "f1": 0.15384615384615385
+    },
+    {
+      "text": "Could you please write a script for a video about ...",
+      "true_pii": 9,
+      "pred_pii": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    {
+      "text": "Please write a blog post for Otis Collier on the h...",
+      "true_pii": 2,
+      "pred_pii": 3,
+      "precision": 0.6666666666666666,
+      "recall": 1.0,
+      "f1": 0.8
+    },
+    {
+      "text": "I need a report on the performance of our marketin...",
+      "true_pii": 12,
+      "pred_pii": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    {
+      "text": "5. Develop a step-by-step tutorial on how to set u...",
+      "true_pii": 11,
+      "pred_pii": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  ]
+]

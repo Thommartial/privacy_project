@@ -1,0 +1,394 @@
+#!/usr/bin/env python3
+"""
+Simplified DistilBERT DP Model in JAX/Flax for PII Detection.
+Fixed architecture with correct Flax imports.
+"""
+
+import jax
+import jax.numpy as jnp
+import flax.linen as nn
+from flax import struct
+from typing import Optional, Tuple, Dict, Any
+import optax
+import numpy as np
+
+
+@struct.dataclass
+class TrainingState:
+    """Training state container."""
+    step: int
+    params: dict
+    opt_state: optax.OptState
+    rng: jnp.ndarray
+
+
+class AttentionBlock(nn.Module):
+    """Simplified attention block."""
+    hidden_size: int = 768
+    num_heads: int = 12
+    dropout_rate: float = 0.1
+    
+    @nn.compact
+    def __call__(self, x, attention_mask=None, training=False):
+        # Multi-head attention
+        attn_output = nn.SelfAttention(
+            num_heads=self.num_heads,
+            dropout_rate=self.dropout_rate if training else 0.0
+        )(x, attention_mask=attention_mask)
+        
+        # Add & Norm
+        x = x + attn_output
+        x = nn.LayerNorm()(x)
+        
+        # Feed-forward
+        ff_output = nn.Dense(self.hidden_size * 4)(x)
+        ff_output = nn.gelu(ff_output)
+        ff_output = nn.Dense(self.hidden_size)(ff_output)
+        ff_output = nn.Dropout(rate=self.dropout_rate, deterministic=not training)(ff_output)
+        
+        # Add & Norm
+        x = x + ff_output
+        x = nn.LayerNorm()(x)
+        
+        return x
+
+
+class DistilBertDP(nn.Module):
+    """
+    Simplified DistilBERT model for token classification with DP support.
+    """
+    num_labels: int = 3  # B, I, O tags
+    hidden_size: int = 768
+    num_attention_heads: int = 12
+    num_hidden_layers: int = 6
+    max_position_embeddings: int = 512
+    dropout: float = 0.1
+    epsilon: float = 8.0  # Privacy budget (will be overridden by training script)
+    delta: float = 1e-5
+    noise_multiplier: float = 0.25  # Will be calculated based on epsilon in trainer
+    
+    @nn.compact
+    def __call__(self, 
+                 input_ids: jnp.ndarray,
+                 attention_mask: jnp.ndarray,
+                 training: bool = False) -> jnp.ndarray:
+        """
+        Forward pass.
+        
+        Args:
+            input_ids: Token IDs [batch_size, seq_len]
+            attention_mask: Attention mask [batch_size, seq_len]
+            training: Whether in training mode
+            
+        Returns:
+            Logits [batch_size, seq_len, num_labels]
+        """
+        # Embeddings
+        x = nn.Embed(num_embeddings=30522, features=self.hidden_size)(input_ids)
+        
+        # Add positional embeddings
+        seq_len = input_ids.shape[1]
+        pos_emb = self.param('pos_emb', 
+                           nn.initializers.normal(stddev=0.02),
+                           (seq_len, self.hidden_size))
+        x = x + pos_emb[None, :, :]
+        
+        # Transformer layers
+        for _ in range(self.num_hidden_layers):
+            x = AttentionBlock(
+                hidden_size=self.hidden_size,
+                num_heads=self.num_attention_heads,
+                dropout_rate=self.dropout
+            )(x, attention_mask=attention_mask[:, None, None, :], training=training)
+        
+        # Classification head
+        logits = nn.Dense(self.num_labels)(x)
+        return logits
+    
+    def compute_privacy_cost(self, 
+                           steps: int, 
+                           batch_size: int, 
+                           dataset_size: int,
+                           noise_multiplier: float) -> Dict[str, float]:
+        """
+        Compute privacy cost using moments accountant.
+        
+        Args:
+            steps: Number of training steps
+            batch_size: Batch size
+            dataset_size: Total dataset size
+            noise_multiplier: Noise multiplier used in training
+            
+        Returns:
+            Dictionary with privacy metrics
+        """
+        q = batch_size / dataset_size  # Sampling probability
+        
+        # Simplified DP-SGD accounting (Abadi et al. 2016)
+        epsilon = noise_multiplier * q * np.sqrt(steps * np.log(1/self.delta))
+        
+        return {
+            'epsilon': float(epsilon),
+            'delta': self.delta,
+            'sigma': noise_multiplier,
+            'q': q,
+            'steps': steps
+        }
+
+
+class DPTrainer:
+    """
+    Differential Privacy Trainer for DistilBERT.
+    Implements DP-SGD with gradient clipping and noise addition.
+    """
+    
+    def __init__(self,
+                 model: DistilBertDP,
+                 learning_rate: float = 5e-5,
+                 epsilon: float = 8.0,
+                 max_grad_norm: float = 1.0,
+                 batch_size: int = 32):
+        
+        self.model = model
+        self.learning_rate = learning_rate
+        self.epsilon = epsilon
+        self.max_grad_norm = max_grad_norm
+        self.batch_size = batch_size
+        
+        # Calculate noise multiplier based on epsilon
+        # Higher epsilon = less privacy = less noise
+        self.noise_multiplier = max(0.1, 2.0 / epsilon)
+        
+        # Optimizer with DP-SGD modifications
+        self.optimizer = self._create_dp_optimizer()
+    
+    def _create_dp_optimizer(self) -> optax.GradientTransformation:
+        """
+        Create optimizer with DP-SGD modifications.
+        """
+        # Standard AdamW optimizer
+        optimizer = optax.adamw(
+            learning_rate=self.learning_rate,
+            weight_decay=0.01
+        )
+        
+        # Add gradient clipping for DP-SGD
+        optimizer = optax.chain(
+            optax.clip_by_global_norm(self.max_grad_norm),
+            optimizer
+        )
+        
+        return optimizer
+    
+    def init_state(self, rng_key: jnp.ndarray, 
+                   dummy_input: jnp.ndarray,
+                   dummy_mask: jnp.ndarray) -> TrainingState:
+        """
+        Initialize training state.
+        
+        Args:
+            rng_key: Random key
+            dummy_input: Dummy input for initialization
+            dummy_mask: Dummy attention mask
+            
+        Returns:
+            Initialized training state
+        """
+        # Initialize parameters
+        params = self.model.init(rng_key, dummy_input, dummy_mask, training=False)
+        
+        # Initialize optimizer state
+        opt_state = self.optimizer.init(params)
+        
+        return TrainingState(
+            step=0,
+            params=params,
+            opt_state=opt_state,
+            rng=rng_key
+        )
+    
+    def compute_loss(self, params: dict, 
+                     batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray],
+                     rng_key: jnp.ndarray) -> Tuple[jnp.ndarray, dict]:
+        """
+        Compute loss and accuracy for a batch.
+        
+        Args:
+            params: Model parameters
+            batch: Tuple of (input_ids, attention_mask, labels)
+            rng_key: Random key
+            
+        Returns:
+            Tuple of (loss, metrics_dict)
+        """
+        input_ids, attention_mask, labels = batch
+        
+        # Forward pass
+        logits = self.model.apply(params, input_ids, attention_mask, 
+                                 training=True, rngs={'dropout': rng_key})
+        
+        # Compute cross-entropy loss
+        loss = optax.softmax_cross_entropy_with_integer_labels(logits, labels)
+        loss = loss.mean()
+        
+        # Compute accuracy
+        predictions = jnp.argmax(logits, axis=-1)
+        accuracy = (predictions == labels).mean()
+        
+        metrics = {
+            'loss': loss,
+            'accuracy': accuracy,
+            'predictions': predictions,
+            'labels': labels
+        }
+        
+        return loss, metrics
+    
+    def train_step(self, state: TrainingState,
+                   batch: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]) -> Tuple[TrainingState, dict]:
+        """
+        Single training step with DP-SGD.
+        
+        Args:
+            state: Current training state
+            batch: Training batch
+            
+        Returns:
+            Updated state and metrics
+        """
+        input_ids, attention_mask, labels = batch
+        
+        # Split RNG key
+        rng, dropout_rng = jax.random.split(state.rng)
+        
+        # Compute loss and gradients
+        grad_fn = jax.value_and_grad(self.compute_loss, has_aux=True)
+        (loss, metrics), grads = grad_fn(state.params, 
+                                        (input_ids, attention_mask, labels),
+                                        dropout_rng)
+        
+        # Apply DP-SGD modifications
+        grads = self._apply_dp_modifications(grads, rng)
+        
+        # Update parameters
+        updates, opt_state = self.optimizer.update(grads, state.opt_state, state.params)
+        params = optax.apply_updates(state.params, updates)
+        
+        # Create new state
+        new_state = state.replace(
+            step=state.step + 1,
+            params=params,
+            opt_state=opt_state,
+            rng=rng
+        )
+        
+        return new_state, {**metrics, 'grad_norm': self._compute_grad_norm(grads)}
+    
+    def _apply_dp_modifications(self, grads: dict, rng_key: jnp.ndarray) -> dict:
+        """
+        Apply DP-SGD modifications: clipping and noise addition.
+        
+        Args:
+            grads: Gradient dictionary
+            rng_key: Random key for noise
+            
+        Returns:
+            Modified gradients
+        """
+        # Clip gradients
+        grads = jax.tree_map(
+            lambda g: g / jnp.maximum(jnp.linalg.norm(g) / self.max_grad_norm, 1.0),
+            grads
+        )
+        
+        # Add Gaussian noise
+        noise_key, _ = jax.random.split(rng_key)
+        
+        def add_noise(grad):
+            noise = jax.random.normal(noise_key, shape=grad.shape)
+            return grad + self.noise_multiplier * self.max_grad_norm * noise / self.batch_size
+        
+        grads = jax.tree_map(add_noise, grads)
+        
+        return grads
+    
+    def _compute_grad_norm(self, grads: dict) -> float:
+        """Compute gradient norm."""
+        grad_norm = jnp.sqrt(
+            sum(jnp.sum(jnp.square(g)) for g in jax.tree_util.tree_leaves(grads))
+        )
+        return float(grad_norm)
+    
+    def evaluate(self, params: dict, 
+                 dataset: Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]) -> Dict[str, float]:
+        """
+        Evaluate model on dataset.
+        
+        Args:
+            params: Model parameters
+            dataset: Evaluation dataset
+            
+        Returns:
+            Dictionary of evaluation metrics
+        """
+        input_ids, attention_mask, labels = dataset
+        
+        # Forward pass
+        logits = self.model.apply(params, input_ids, attention_mask, training=False)
+        
+        # Compute metrics
+        predictions = jnp.argmax(logits, axis=-1)
+        
+        # Calculate accuracy
+        accuracy = (predictions == labels).mean()
+        
+        # Calculate per-class metrics
+        correct_pii = ((predictions != 0) & (labels != 0)).sum()
+        total_pred_pii = (predictions != 0).sum()
+        total_true_pii = (labels != 0).sum()
+        
+        precision = correct_pii / total_pred_pii if total_pred_pii > 0 else 0.0
+        recall = correct_pii / total_true_pii if total_true_pii > 0 else 0.0
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+        
+        return {
+            'accuracy': float(accuracy),
+            'precision': float(precision),
+            'recall': float(recall),
+            'f1_score': float(f1),
+            'total_pii': int(total_true_pii),
+            'predicted_pii': int(total_pred_pii),
+            'correct_pii': int(correct_pii)
+        }
+
+
+# Utility functions
+def save_checkpoint(state: TrainingState, path: str, metrics: dict, epsilon: float):
+    """Save model checkpoint with epsilon info."""
+    import pickle
+    
+    checkpoint = {
+        'state': state,
+        'metrics': metrics,
+        'config': {
+            'epsilon': epsilon,
+            'noise_multiplier': metrics.get('noise_multiplier', 0.25),
+            'batch_size': 32,
+            'learning_rate': 5e-5
+        }
+    }
+    
+    with open(path, 'wb') as f:
+        pickle.dump(checkpoint, f)
+    
+    print(f"✅ Checkpoint saved: {path} (ε={epsilon})")
+
+
+def load_checkpoint(path: str) -> Tuple[TrainingState, dict, dict]:
+    """Load model checkpoint."""
+    import pickle
+    
+    with open(path, 'rb') as f:
+        checkpoint = pickle.load(f)
+    
+    return checkpoint['state'], checkpoint['metrics'], checkpoint['config']

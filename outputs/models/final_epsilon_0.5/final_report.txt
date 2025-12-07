@@ -1,0 +1,36 @@
+
+    ======================================================================
+    📊 FINAL DP MODEL TRAINING REPORT (ε=0.5)
+    ======================================================================
+    
+    DATASET:
+    - Total samples: 3500
+    - PII rate: 17.0%
+    - Train/Validation: 2800 / 700
+    
+    MODEL:
+    - Architecture: 6 → 32 → 16 → 2
+    - Learning rate: 0.0005
+    - Batch size: 32
+    
+    RESULTS:
+    - Best epoch: 1
+    - Best F1 score: 0.6292
+    - Validation accuracy: 0.7929
+    - Baseline accuracy (always predict non-PII): 0.8157
+    - Improvement over baseline: -0.0229
+    
+    PRIVACY:
+    - ε (privacy budget): 0.5
+    - δ: 1e-05
+    - Training samples: 2800
+    - Epochs trained: 6
+    
+    FILES SAVED:
+    - Model parameters: outputs/models/final_epsilon_0.5/best_params.pkl
+    - Training history: outputs/models/final_epsilon_0.5/history.json
+    - Configuration: outputs/models/final_epsilon_0.5/config.json
+    - Results plot: outputs/models/final_epsilon_0.5/training_results.png
+    
+    ======================================================================
+    

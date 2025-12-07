@@ -1,0 +1,26 @@
+{
+  "epsilon": 5.0,
+  "metrics": {
+    "accuracy": 0.9093333333333333,
+    "precision": 0.6476683937823834,
+    "recall": 1.0,
+    "f1_score": 0.7861635220125787,
+    "baseline_accuracy": 0.8333333333333334,
+    "improvement": 0.07599999999999996
+  },
+  "confusion_matrix": [
+    [
+      557,
+      68
+    ],
+    [
+      0,
+      125
+    ]
+  ],
+  "dataset_info": {
+    "test_samples": 750,
+    "pii_count": 125,
+    "pii_percentage": 0.16666666666666666
+  }
+}

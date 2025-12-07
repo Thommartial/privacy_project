@@ -1,0 +1,42 @@
+{
+  "baseline": 0.8333,
+  "dp_models": {
+    "0.5": {
+      "accuracy": 0.7507,
+      "f1": 0.5621,
+      "improvement": -0.0827
+    },
+    "1.0": {
+      "accuracy": 0.7507,
+      "f1": 0.5621,
+      "improvement": -0.0827
+    },
+    "2.0": {
+      "accuracy": 0.856,
+      "f1": 0.6983,
+      "improvement": 0.0227
+    },
+    "3.0": {
+      "accuracy": 0.884,
+      "f1": 0.7418,
+      "improvement": 0.0507
+    },
+    "5.0": {
+      "accuracy": 0.9093,
+      "f1": 0.7862,
+      "improvement": 0.076
+    },
+    "8.0": {
+      "accuracy": 0.9947,
+      "f1": 0.9843,
+      "improvement": 0.1613
+    }
+  },
+  "analysis": {
+    "tradeoff_observed": true,
+    "best_model": "\u03b5=8.0",
+    "best_accuracy": 0.9947,
+    "best_improvement": 0.1613,
+    "privacy_cost": "Lower \u03b5 (more privacy) \u2192 Lower accuracy"
+  }
+}

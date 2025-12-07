@@ -1,0 +1,42 @@
+{
+  "baseline_type": "simple_heuristic",
+  "heuristics_used": [
+    "Capitalized words \u2192 PERSON",
+    "Contains @ and . \u2192 EMAIL",
+    "Phone pattern \u2192 PHONE",
+    "SSN pattern \u2192 SSN"
+  ],
+  "performance": {
+    "train": {
+      "split": "train",
+      "samples": 3500,
+      "total_tokens": 91563,
+      "true_pii_tokens": 25610,
+      "pred_pii_tokens": 13149,
+      "precision": 0.4358506350292798,
+      "recall": 0.22377977352596642,
+      "f1_score": 0.29572486390257746
+    },
+    "val": {
+      "split": "val",
+      "samples": 750,
+      "total_tokens": 19235,
+      "true_pii_tokens": 5148,
+      "pred_pii_tokens": 2753,
+      "precision": 0.42717035960770067,
+      "recall": 0.22843822843822845,
+      "f1_score": 0.29768383748892546
+    },
+    "test": {
+      "split": "test",
+      "samples": 750,
+      "total_tokens": 19663,
+      "true_pii_tokens": 5378,
+      "pred_pii_tokens": 2782,
+      "precision": 0.4137311286843997,
+      "recall": 0.21402008181480103,
+      "f1_score": 0.2821078431372549
+    }
+  },
+  "notes": "Simple rule-based baseline for comparison with ML model"
+}

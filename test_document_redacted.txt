@@ -1,0 +1,9 @@
+Patient Record:
+Name: John Smith
+Email: [EMAIL]
+Phone: (555) 123-4567
+SSN: [SSN]
+Address: 123 Medical Center Dr, Boston, MA
+Date of Birth: [DATE]
+Credit Card: [CREDIT_CARD]
+IP Address: [IP_ADDRESS]

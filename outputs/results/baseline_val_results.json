@@ -1,0 +1,54 @@
+[
+  {
+    "split": "val",
+    "samples": 750,
+    "total_tokens": 19235,
+    "true_pii_tokens": 5148,
+    "pred_pii_tokens": 2753,
+    "precision": 0.42717035960770067,
+    "recall": 0.22843822843822845,
+    "f1_score": 0.29768383748892546
+  },
+  [
+    {
+      "text": "10. Explain the steps Lucy Wisoky can take to repo...",
+      "true_pii": 4,
+      "pred_pii": 3,
+      "precision": 0.3333333333333333,
+      "recall": 0.25,
+      "f1": 0.2857142857142857
+    },
+    {
+      "text": "Please draft a summary of the competitive landscap...",
+      "true_pii": 6,
+      "pred_pii": 4,
+      "precision": 0.5,
+      "recall": 0.3333333333333333,
+      "f1": 0.4
+    },
+    {
+      "text": "Could you write an article about the alternatives ...",
+      "true_pii": 14,
+      "pred_pii": 3,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    {
+      "text": "I'd love to read about occupational therapy case s...",
+      "true_pii": 3,
+      "pred_pii": 4,
+      "precision": 0.25,
+      "recall": 0.3333333333333333,
+      "f1": 0.2857142857142857
+    },
+    {
+      "text": "Develop a pricing strategy for Dickinson, Zieme an...",
+      "true_pii": 13,
+      "pred_pii": 6,
+      "precision": 0.5,
+      "recall": 0.23076923076923078,
+      "f1": 0.3157894736842105
+    }
+  ]
+]

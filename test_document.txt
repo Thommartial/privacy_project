@@ -1,0 +1,9 @@
+Patient Record:
+Name: John Smith
+Email: john.smith@hospital.com
+Phone: (555) 123-4567
+SSN: 123-45-6789
+Address: 123 Medical Center Dr, Boston, MA
+Date of Birth: 05/15/1980
+Credit Card: 4111-1111-1111-1111
+IP Address: 192.168.1.100

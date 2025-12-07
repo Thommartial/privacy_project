@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+"""
+Plotting utilities for training visualization.
+"""
+
+import matplotlib.pyplot as plt
+import numpy as np
+from pathlib import Path
+import json
+from typing import Dict, List
+
+
+def generate_training_plots(history: Dict, output_dir: Path):
+    """
+    Generate training visualization plots.
+    
+    Args:
+        history: Training history dictionary
+        output_dir: Output directory for plots
+    """
+    output_dir = Path(output_dir) / "plots"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    epochs = history['epochs']
+    
+    # 1. Loss plot
+    plt.figure(figsize=(12, 4))
+    
+    plt.subplot(1, 3, 1)
+    plt.plot(epochs, history['train_loss'], 'b-', label='Train Loss', linewidth=2)
+    if 'val_loss' in history:
+        plt.plot(epochs, history['val_loss'], 'r-', label='Val Loss', linewidth=2)
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training & Validation Loss')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    # 2. Accuracy plot
+    plt.subplot(1, 3, 2)
+    plt.plot(epochs, history['train_accuracy'], 'b-', label='Train Acc', linewidth=2)
+    if 'val_accuracy' in history:
+        plt.plot(epochs, history['val_accuracy'], 'r-', label='Val Acc', linewidth=2)
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.title('Training & Validation Accuracy')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    # 3. F1 Score plot
+    plt.subplot(1, 3, 3)
+    if 'val_f1' in history:
+        plt.plot(epochs, history['val_f1'], 'g-', label='Val F1', linewidth=2, marker='o')
+        # Mark best F1
+        best_idx = np.argmax(history['val_f1'])
+        best_f1 = history['val_f1'][best_idx]
+        best_epoch = epochs[best_idx]
+        plt.scatter([best_epoch], [best_f1], color='red', s=100, zorder=5)
+        plt.annotate(f'Best: {best_f1:.3f}', 
+                    (best_epoch, best_f1),
+                    xytext=(10, 10),
+                    textcoords='offset points')
+    plt.xlabel('Epoch')
+    plt.ylabel('F1 Score')
+    plt.title('Validation F1 Score')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(output_dir / 'training_curves.png', dpi=150, bbox_inches='tight')
+    plt.close()
+    
+    # 4. Combined metrics plot
+    plt.figure(figsize=(10, 6))
+    
+    metrics = ['train_accuracy', 'val_accuracy', 'val_f1']
+    colors = ['blue', 'red', 'green']
+    labels = ['Train Accuracy', 'Val Accuracy', 'Val F1']
+    
+    for metric, color, label in zip(metrics, colors, labels):
+        if metric in history and history[metric]:
+            plt.plot(epochs, history[metric], color=color, label=label, linewidth=2)
+    
+    plt.xlabel('Epoch')
+    plt.ylabel('Score')
+    plt.title(f'DP Model Training Metrics (ε={history.get("privacy_cost", {}).get("epsilon", "?"):.1f})')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    # Add privacy info annotation
+    if 'privacy_cost' in history:
+        pc = history['privacy_cost']
+        privacy_text = f"Privacy: ε={pc['epsilon']:.2f}, δ={pc['delta']:.0e}"
+        plt.figtext(0.5, 0.01, privacy_text, ha='center', fontsize=10, 
+                   bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgray"))
+    
+    plt.tight_layout(rect=[0, 0.05, 1, 0.95])
+    plt.savefig(output_dir / 'combined_metrics.png', dpi=150, bbox_inches='tight')
+    plt.close()
+    
+    print(f"✅ Training plots saved to: {output_dir}/")
+
+
+def generate_privacy_tradeoff_plot(epsilon_values: List[float], 
+                                 f1_scores: List[float],
+                                 output_path: Path):
+    """
+    Generate privacy-utility tradeoff plot.
+    
+    Args:
+        epsilon_values: List of epsilon values
+        f1_scores: List of corresponding F1 scores
+        output_path: Output file path
+    """
+    plt.figure(figsize=(8, 6))
+    
+    # Sort by epsilon
+    sorted_data = sorted(zip(epsilon_values, f1_scores))
+    epsilons, f1s = zip(*sorted_data)
+    
+    plt.plot(epsilons, f1s, 'o-', linewidth=3, markersize=10, 
+            color='darkblue', markerfacecolor='lightblue')
+    
+    plt.xlabel('Privacy Budget (ε)', fontsize=12)
+    plt.ylabel('F1 Score', fontsize=12)
+    plt.title('Privacy-Utility Tradeoff', fontsize=14, fontweight='bold')
+    plt.grid(True, alpha=0.3)
+    
+    # Add value labels
+    for eps, f1 in zip(epsilons, f1s):
+        plt.annotate(f'{f1:.3f}', (eps, f1), 
+                    xytext=(0, 10), textcoords='offset points',
+                    ha='center', fontsize=10)
+    
+    # Invert x-axis (higher ε = less privacy)
+    plt.gca().invert_xaxis()
+    
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    
+    print(f"✅ Privacy tradeoff plot saved: {output_path}")
+
+
+def plot_confusion_matrix(predictions: np.ndarray, 
+                        labels: np.ndarray,
+                        class_names: List[str],
+                        output_path: Path):
+    """
+    Plot confusion matrix.
+    
+    Args:
+        predictions: Predicted labels
+        labels: True labels
+        class_names: List of class names
+        output_path: Output file path
+    """
+    from sklearn.metrics import confusion_matrix
+    import seaborn as sns
+    
+    cm = confusion_matrix(labels.flatten(), predictions.flatten())
+    
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=class_names, yticklabels=class_names)
+    
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title('Confusion Matrix')
+    
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    
+    print(f"✅ Confusion matrix saved: {output_path}")
+
+
+if __name__ == "__main__":
+    # Example usage
+    test_history = {
+        'epochs': [1, 2, 3, 4, 5],
+        'train_loss': [0.8, 0.6, 0.5, 0.4, 0.35],
+        'train_accuracy': [0.65, 0.72, 0.78, 0.82, 0.85],
+        'val_loss': [0.75, 0.58, 0.48, 0.42, 0.38],
+        'val_accuracy': [0.68, 0.75, 0.80, 0.83, 0.86],
+        'val_f1': [0.60, 0.68, 0.75, 0.78, 0.80],
+        'privacy_cost': {'epsilon': 8.0, 'delta': 1e-5}
+    }
+    
+    generate_training_plots(test_history, Path("test_output"))

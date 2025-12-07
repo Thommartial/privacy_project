@@ -1,0 +1,54 @@
+[
+  {
+    "split": "test",
+    "samples": 750,
+    "total_tokens": 19663,
+    "true_pii_tokens": 5378,
+    "pred_pii_tokens": 2782,
+    "precision": 0.4137311286843997,
+    "recall": 0.21402008181480103,
+    "f1_score": 0.2821078431372549
+  },
+  [
+    {
+      "text": "18. Create a checklist for securing customer data ...",
+      "true_pii": 8,
+      "pred_pii": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    {
+      "text": "Please help me understand the risks associated wit...",
+      "true_pii": 4,
+      "pred_pii": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    {
+      "text": "Hey, can you write an article on the challenges fa...",
+      "true_pii": 7,
+      "pred_pii": 3,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    {
+      "text": "Would you mind writing an email to Yazmin.Kihn@hot...",
+      "true_pii": 15,
+      "pred_pii": 4,
+      "precision": 0.5,
+      "recall": 0.13333333333333333,
+      "f1": 0.21052631578947367
+    },
+    {
+      "text": "Draft a memo for Norma Bogisich summarizing the ma...",
+      "true_pii": 4,
+      "pred_pii": 3,
+      "precision": 0.6666666666666666,
+      "recall": 0.5,
+      "f1": 0.5714285714285714
+    }
+  ]
+]

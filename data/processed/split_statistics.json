@@ -1,0 +1,19 @@
+{
+  "total_samples": 5000,
+  "train_samples": 3500,
+  "val_samples": 750,
+  "test_samples": 750,
+  "split_ratio": {
+    "train": 0.7,
+    "val": 0.15,
+    "test": 0.15
+  },
+  "pii_statistics": {
+    "train_pii_count": 25610,
+    "val_pii_count": 5148,
+    "test_pii_count": 5378,
+    "train_pii_per_sample": 7.317142857142857,
+    "val_pii_per_sample": 6.864,
+    "test_pii_per_sample": 7.1706666666666665
+  }
+}

@@ -1,0 +1,108 @@
+"""
+DP utilities for differential privacy.
+"""
+import numpy as np
+import jax
+import jax.numpy as jnp
+from jax import random, tree_util
+
+def compute_dp_sgd_privacy(n, batch_size, target_epsilon, target_delta, epochs):
+    """
+    Compute noise multiplier for DP-SGD.
+    Based on the moments accountant.
+    
+    Returns:
+        noise_multiplier: The σ parameter for Gaussian noise
+    """
+    # This runs outside JIT, so Python conditionals are fine
+    if target_epsilon <= 0 or target_delta <= 0:
+        return 0.0
+    
+    q = batch_size / n  # Sampling probability
+    steps = epochs * n // batch_size
+    
+    # Use the Gaussian mechanism formula: σ = Δf * sqrt(2 * ln(1.25/δ)) / ε
+    # Where Δf is sensitivity (we use clip_norm=1.0)
+    clip_norm = 1.0
+    noise_multiplier = clip_norm * np.sqrt(2 * np.log(1.25 / target_delta)) / target_epsilon
+    
+    # Adjust for composition: σ_total = σ / sqrt(steps)
+    if steps > 1:
+        noise_multiplier = noise_multiplier / np.sqrt(steps)
+    
+    return float(max(noise_multiplier, 0.1))  # Ensure minimum noise
+
+def add_noise_to_grads(grads, epsilon, delta, clip_norm=1.0):
+    """
+    Add calibrated Gaussian noise to gradients for DP-SGD.
+    
+    Args:
+        grads: Gradient tree
+        epsilon: Privacy budget per step
+        delta: Privacy parameter
+        clip_norm: Gradient clipping norm
+    
+    Returns:
+        Noisy gradients
+    """
+    # This function will be JIT compiled, so we need to use JAX control flow
+    
+    # Clip gradients to bound sensitivity
+    def clip_gradient(g):
+        norm = jnp.linalg.norm(g)
+        scale = jnp.minimum(1.0, clip_norm / (norm + 1e-10))
+        return g * scale
+    
+    grads = tree_util.tree_map(clip_gradient, grads)
+    
+    # Compute noise scale using jnp.where for conditionals
+    # If epsilon <= 0, no noise; otherwise compute noise
+    safe_epsilon = jnp.maximum(epsilon, 1e-10)  # Avoid division by zero
+    noise_scale = clip_norm * jnp.sqrt(2 * jnp.log(1.25 / delta)) / safe_epsilon
+    
+    # Use jnp.where to conditionally apply noise
+    # If epsilon <= 0, noise_scale = 0
+    noise_scale = jnp.where(epsilon <= 0, 0.0, noise_scale)
+    
+    # Add Gaussian noise to each gradient
+    key = random.PRNGKey(0)
+    
+    def add_noise(g):
+        nonlocal key
+        key, subkey = random.split(key)
+        noise = noise_scale * random.normal(subkey, g.shape)
+        return g + noise
+    
+    # Apply noise to all gradients
+    noisy_grads = tree_util.tree_map(add_noise, grads)
+    
+    return noisy_grads
+
+def compute_renyi_dp(q, sigma, steps, alpha):
+    """
+    Compute Renyi Differential Privacy.
+    """
+    return alpha / (2 * sigma ** 2) if sigma > 0 else float('inf')
+
+class PrivacyAccountant:
+    """Track privacy spending using moments accountant."""
+    
+    def __init__(self, target_delta=1e-5):
+        self.target_delta = target_delta
+        self.rdp_alphas = list(range(2, 65))
+        self.rdp_budget = {alpha: 0.0 for alpha in self.rdp_alphas}
+    
+    def add_step(self, q, sigma):
+        for alpha in self.rdp_alphas:
+            rdp_alpha = alpha / (2 * sigma ** 2) if sigma > 0 else float('inf')
+            self.rdp_budget[alpha] += rdp_alpha
+    
+    def get_epsilon(self, delta=None):
+        if delta is None:
+            delta = self.target_delta
+        
+        eps = float('inf')
+        for alpha, rdp in self.rdp_budget.items():
+            eps = min(eps, rdp + np.log(1/delta)/(alpha-1))
+        
+        return eps

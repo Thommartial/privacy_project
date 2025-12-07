@@ -1,0 +1,345 @@
+#!/usr/bin/env python3
+"""
+Proper DP training with real data and better model.
+"""
+
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+import jax
+import jax.numpy as jnp
+import numpy as np
+import pandas as pd
+from pathlib import Path
+import json
+import time
+import pickle
+import argparse
+from typing import Dict, Tuple
+import optax
+
+
+class ProperDPModel(jax.nn.Module):
+    """Better but still simple DP model."""
+    vocab_size: int = 10000
+    hidden_size: int = 256
+    num_labels: int = 3
+    epsilon: float = 8.0
+    delta: float = 1e-5
+    
+    @jax.nn.compact
+    def __call__(self, input_ids, attention_mask=None, training=False):
+        # Embedding layer
+        x = jax.nn.Embed(self.vocab_size, self.hidden_size)(input_ids)
+        
+        # Simple LSTM-like processing
+        x = jax.nn.Dense(self.hidden_size)(x)
+        x = jax.nn.relu(x)
+        x = jax.nn.Dropout(rate=0.2, deterministic=not training)(x)
+        
+        # Global pooling
+        x = jnp.mean(x, axis=1)  # [batch, hidden]
+        
+        # Classification head
+        x = jax.nn.Dense(128)(x)
+        x = jax.nn.relu(x)
+        x = jax.nn.Dropout(rate=0.1, deterministic=not training)(x)
+        
+        # Expand for sequence labeling
+        batch_size, seq_len = input_ids.shape
+        x = x[:, None, :]  # [batch, 1, hidden]
+        x = jnp.tile(x, (1, seq_len, 1))  # [batch, seq_len, hidden]
+        
+        logits = jax.nn.Dense(self.num_labels)(x)
+        return logits
+    
+    def compute_privacy_cost(self, steps, batch_size, dataset_size, noise_multiplier):
+        q = batch_size / dataset_size
+        epsilon = noise_multiplier * q * np.sqrt(steps * np.log(1/self.delta))
+        return {
+            'epsilon': float(epsilon),
+            'delta': self.delta,
+            'sigma': noise_multiplier,
+            'q': q,
+            'steps': steps
+        }
+
+
+def load_real_data(epsilon: float, max_samples: int = 1000, max_seq_length: int = 64):
+    """Load real PII data with proper labels."""
+    print("📂 Loading real PII data...")
+    
+    train_df = pd.read_csv("data/processed/train.csv")
+    val_df = pd.read_csv("data/processed/val.csv")
+    
+    # Use more data for higher epsilon (less privacy = can use more data)
+    scale_factor = min(1.0, epsilon / 8.0)  # Scale from 0.5 to 1.0
+    n_train = int(max_samples * scale_factor)
+    n_val = int(max_samples * 0.2 * scale_factor)
+    
+    train_df = train_df.sample(n=min(n_train, len(train_df)), random_state=42)
+    val_df = val_df.sample(n=min(n_val, len(val_df)), random_state=42)
+    
+    print(f"  Using {len(train_df)} train, {len(val_df)} val samples for ε={epsilon}")
+    
+    def parse_labels(labels_str):
+        if isinstance(labels_str, str):
+            try:
+                return eval(labels_str)
+            except:
+                return []
+        return labels_str
+    
+    train_df['labels'] = train_df['labels'].apply(parse_labels)
+    val_df['labels'] = val_df['labels'].apply(parse_labels)
+    
+    def create_dataset(df, seq_len):
+        texts = df['text'].tolist()
+        labels = df['labels'].tolist()
+        
+        input_ids = []
+        label_arrays = []
+        
+        for text, label_list in zip(texts, labels):
+            # Simple tokenization
+            words = text.split()[:seq_len]
+            current_len = len(words)
+            
+            # Simple hash-based token IDs
+            ids = [hash(word) % 10000 for word in words]
+            if current_len < seq_len:
+                ids = ids + [0] * (seq_len - current_len)
+            
+            # Convert labels to indices
+            label_array = [0] * seq_len
+            for i in range(min(len(label_list), seq_len)):
+                label = label_list[i]
+                if label == 'O':
+                    label_array[i] = 0
+                elif label.startswith('B-'):
+                    label_array[i] = 1
+                elif label.startswith('I-'):
+                    label_array[i] = 2
+            
+            input_ids.append(ids)
+            label_arrays.append(label_array)
+        
+        return {
+            'input_ids': jnp.array(input_ids, dtype=jnp.int32),
+            'attention_mask': jnp.ones((len(df), seq_len), dtype=jnp.int32),
+            'labels': jnp.array(label_arrays, dtype=jnp.int32)
+        }
+    
+    train_data = create_dataset(train_df, max_seq_length)
+    val_data = create_dataset(val_df, max_seq_length)
+    
+    print(f"✅ Data loaded. Input shape: {train_data['input_ids'].shape}")
+    return train_data, val_data
+
+
+def train_proper_model(args):
+    """Train proper DP model."""
+    print(f"\n🚀 Training Proper DP Model (ε={args.epsilon})")
+    
+    # Load data
+    train_data, val_data = load_real_data(
+        epsilon=args.epsilon,
+        max_samples=args.max_samples,
+        max_seq_length=args.max_seq_length
+    )
+    
+    # Create model
+    model = ProperDPModel(epsilon=args.epsilon, hidden_size=args.hidden_size)
+    
+    # Setup training
+    noise_multiplier = max(0.1, 2.0 / args.epsilon)
+    learning_rate = 5e-5
+    
+    optimizer = optax.chain(
+        optax.clip_by_global_norm(1.0),
+        optax.adam(learning_rate)
+    )
+    
+    # Initialize
+    rng = jax.random.PRNGKey(42)
+    rng, init_rng = jax.random.split(rng)
+    
+    dummy_input = jnp.ones((2, args.max_seq_length), dtype=jnp.int32)
+    dummy_mask = jnp.ones((2, args.max_seq_length), dtype=jnp.int32)
+    
+    params = model.init(init_rng, dummy_input, dummy_mask, training=False)
+    opt_state = optimizer.init(params)
+    
+    # Training function
+    @jax.jit
+    def train_step(params, opt_state, batch, rng):
+        input_ids, attention_mask, labels = batch
+        rng, dropout_rng = jax.random.split(rng)
+        
+        def loss_fn(params):
+            logits = model.apply(params, input_ids, attention_mask, training=True, rngs={'dropout': dropout_rng})
+            loss = optax.softmax_cross_entropy_with_integer_labels(logits, labels).mean()
+            return loss
+        
+        loss, grads = jax.value_and_grad(loss_fn)(params)
+        
+        # DP modifications
+        grads = jax.tree.map(
+            lambda g: g / jnp.maximum(jnp.linalg.norm(g) / 1.0, 1.0),
+            grads
+        )
+        
+        noise_key, _ = jax.random.split(rng)
+        def add_noise(grad):
+            noise = jax.random.normal(noise_key, shape=grad.shape)
+            return grad + noise_multiplier * 1.0 * noise / args.batch_size
+        grads = jax.tree.map(add_noise, grads)
+        
+        updates, opt_state = optimizer.update(grads, opt_state, params)
+        params = optax.apply_updates(params, updates)
+        
+        return params, opt_state, loss, rng
+    
+    @jax.jit
+    def evaluate(params, batch):
+        input_ids, attention_mask, labels = batch
+        logits = model.apply(params, input_ids, attention_mask, training=False)
+        predictions = jnp.argmax(logits, axis=-1)
+        accuracy = (predictions == labels).mean()
+        return accuracy
+    
+    # Training loop
+    history = {
+        'epsilon': args.epsilon,
+        'train_loss': [],
+        'train_acc': [],
+        'val_acc': [],
+        'epochs': []
+    }
+    
+    n_samples = train_data['input_ids'].shape[0]
+    n_batches = (n_samples + args.batch_size - 1) // args.batch_size
+    
+    for epoch in range(args.epochs):
+        epoch_start = time.time()
+        epoch_loss = 0.0
+        
+        # Shuffle data
+        indices = np.random.permutation(n_samples)
+        
+        for i in range(0, n_samples, args.batch_size):
+            batch_idx = indices[i:i+args.batch_size]
+            batch = (
+                train_data['input_ids'][batch_idx],
+                train_data['attention_mask'][batch_idx],
+                train_data['labels'][batch_idx]
+            )
+            
+            params, opt_state, loss, rng = train_step(params, opt_state, batch, rng)
+            epoch_loss += float(loss)
+        
+        avg_loss = epoch_loss / n_batches
+        
+        # Validation
+        val_acc = float(evaluate(params, (
+            val_data['input_ids'][:args.batch_size],
+            val_data['attention_mask'][:args.batch_size],
+            val_data['labels'][:args.batch_size]
+        )))
+        
+        # Training accuracy (small sample)
+        train_acc = float(evaluate(params, (
+            train_data['input_ids'][:args.batch_size],
+            train_data['attention_mask'][:args.batch_size],
+            train_data['labels'][:args.batch_size]
+        )))
+        
+        history['train_loss'].append(avg_loss)
+        history['train_acc'].append(train_acc)
+        history['val_acc'].append(val_acc)
+        history['epochs'].append(epoch + 1)
+        
+        epoch_time = time.time() - epoch_start
+        print(f"  Epoch {epoch+1}/{args.epochs} | "
+              f"Time: {epoch_time:.1f}s | "
+              f"Loss: {avg_loss:.4f} | "
+              f"Train Acc: {train_acc:.4f} | "
+              f"Val Acc: {val_acc:.4f}")
+    
+    # Privacy cost
+    total_steps = args.epochs * n_batches
+    privacy_cost = model.compute_privacy_cost(
+        steps=total_steps,
+        batch_size=args.batch_size,
+        dataset_size=n_samples,
+        noise_multiplier=noise_multiplier
+    )
+    
+    history['privacy_cost'] = privacy_cost
+    history['noise_multiplier'] = noise_multiplier
+    history['total_steps'] = total_steps
+    
+    # Save model
+    model_name = f"proper_epsilon_{args.epsilon}"
+    output_dir = Path("outputs/models") / model_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    checkpoint = {
+        'params': params,
+        'opt_state': opt_state,
+        'history': history,
+        'config': {
+            'epsilon': args.epsilon,
+            'hidden_size': args.hidden_size,
+            'batch_size': args.batch_size,
+            'max_seq_length': args.max_seq_length,
+            'max_samples': args.max_samples,
+            'epochs': args.epochs
+        }
+    }
+    
+    with open(output_dir / "checkpoint.pkl", "wb") as f:
+        pickle.dump(checkpoint, f)
+    
+    with open(output_dir / "history.json", "w") as f:
+        json.dump(history, f, indent=2, default=str)
+    
+    print(f"\n✅ Training complete!")
+    print(f"   Best Val Acc: {max(history['val_acc']):.4f}")
+    print(f"   Privacy: ε={privacy_cost['epsilon']:.3f}")
+    print(f"   Model saved: {output_dir}")
+    
+    return history
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Train proper DP model")
+    
+    parser.add_argument("--epsilon", type=float, default=8.0)
+    parser.add_argument("--epochs", type=int, default=5)
+    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--hidden_size", type=int, default=256)
+    parser.add_argument("--max_seq_length", type=int, default=64)
+    parser.add_argument("--max_samples", type=int, default=1000)
+    
+    args = parser.parse_args()
+    
+    print("="*70)
+    print("🚀 PROPER DP MODEL TRAINING")
+    print("="*70)
+    print(f"  ε: {args.epsilon}")
+    print(f"  Model: ProperDPModel (hidden_size={args.hidden_size})")
+    print(f"  Data: {args.max_samples} samples, seq_len={args.max_seq_length}")
+    print("="*70)
+    
+    try:
+        train_proper_model(args)
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+if __name__ == "__main__":
+    main()

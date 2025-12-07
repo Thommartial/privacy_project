@@ -1,0 +1,21 @@
+# Project Configuration
+project:
+  name: "pii-detection-dp"
+  author: "Lanre Atoye, Ekwelle Epalle Thomas Martial"
+  course: "CIS*6550"
+
+data:
+  dataset: "PII-Masking-43K"
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+
+model:
+  base: "distilbert-base-uncased"
+  num_labels: 3  # BIO tagging
+
+training:
+  epsilons: [0.5, 1.0, 2.0, 3.0, 5.0, 8.0]
+  batch_size: 8
+  epochs: 3
+  learning_rate: 5e-5

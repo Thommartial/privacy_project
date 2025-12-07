@@ -1,0 +1,58 @@
+{
+  "original_text": "Patient Record:\nName: John Smith\nEmail: john.smith@hospital.com\nPhone: (555) 123-4567\nSSN: 123-45-6789\nAddress: 123 Medical Center Dr, Boston, MA\nDate of Birth: 05/15/1980\nCredit Card: 4111-1111-1111-1111\nIP Address: 192.168.1.100\n",
+  "redacted_text": "Patient Record:\nName: John Smith\nEmail: [EMAIL]\nPhone: (555) 123-4567\nSSN: [SSN]\nAddress: 123 Medical Center Dr, Boston, MA\nDate of Birth: [DATE]\nCredit Card: [CREDIT_CARD]\nIP Address: [IP_ADDRESS]\n",
+  "detected_entities": [
+    {
+      "text": "192.168.1.100",
+      "category": "IP_ADDRESS",
+      "start": 217,
+      "end": 230,
+      "confidence": 1.0
+    },
+    {
+      "text": "4111-1111-1111-1111",
+      "category": "CREDIT_CARD",
+      "start": 185,
+      "end": 204,
+      "confidence": 1.0
+    },
+    {
+      "text": "05/15/1980",
+      "category": "DATE",
+      "start": 161,
+      "end": 171,
+      "confidence": 1.0
+    },
+    {
+      "text": "123-45-6789",
+      "category": "SSN",
+      "start": 91,
+      "end": 102,
+      "confidence": 1.0
+    },
+    {
+      "text": "john.smith@hospital.com",
+      "category": "EMAIL",
+      "start": 40,
+      "end": 63,
+      "confidence": 1.0
+    }
+  ],
+  "statistics": {
+    "total_characters": 231,
+    "redacted_characters": 76,
+    "entity_count": 5,
+    "categories_detected": [
+      "IP_ADDRESS",
+      "DATE",
+      "SSN",
+      "EMAIL",
+      "CREDIT_CARD"
+    ]
+  },
+  "pipeline_info": {
+    "model_epsilon": 8.0,
+    "model_accuracy": 0.9985714285714286,
+    "redaction_style": "category_specific"
+  }
+}

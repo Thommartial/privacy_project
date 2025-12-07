@@ -1,0 +1,17 @@
+{
+  "train_size": 3500,
+  "val_size": 750,
+  "test_size": 750,
+  "total_size": 5000,
+  "split_ratio": {
+    "train": 0.7,
+    "val": 0.15,
+    "test": 0.15
+  },
+  "file_paths": {
+    "train": "data/processed/raw_splits/train.csv",
+    "val": "data/processed/raw_splits/val.csv",
+    "test": "data/processed/raw_splits/test.csv"
+  },
+  "format": "csv"
+}

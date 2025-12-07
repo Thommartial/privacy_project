@@ -1,0 +1,4 @@
+#!/bin/bash
+# Wrapper script for the redaction pipeline
+
+python src/redaction/redaction_pipeline.py "$@"

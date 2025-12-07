@@ -1,0 +1,14 @@
+{
+  "epsilon": 8.0,
+  "delta": 1e-05,
+  "epochs": 15,
+  "batch_size": 32,
+  "hidden_size": 32,
+  "learning_rate": 0.0005,
+  "max_samples": 5000,
+  "input_dim": 6,
+  "best_epoch": 9,
+  "best_f1": 0.9961389961389961,
+  "final_accuracy": 0.9985714285714286,
+  "baseline_accuracy": 0.8157142857142857
+}

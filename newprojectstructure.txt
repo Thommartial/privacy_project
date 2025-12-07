@@ -1,0 +1,126 @@
+.
+├── backup_20251206_143139
+│   ├── distilbert_dp.py.backup
+│   ├── plot_utils.py.backup
+│   └── train_dp.py.backup
+├── configs
+│   └── project.yaml
+├── create_pipeline.sh
+├── create_structure.sh
+├── data
+│   ├── processed
+│   │   ├── data_analysis.json
+│   │   ├── raw_splits
+│   │   │   ├── split_statistics.json
+│   │   │   ├── test.csv
+│   │   │   ├── train.csv
+│   │   │   └── val.csv
+│   │   ├── split_statistics.json
+│   │   ├── test
+│   │   │   ├── data-00000-of-00001.arrow
+│   │   │   ├── dataset_info.json
+│   │   │   └── state.json
+│   │   ├── test.csv
+│   │   ├── tokenizer
+│   │   │   ├── special_tokens_map.json
+│   │   │   ├── tokenizer_config.json
+│   │   │   ├── tokenizer.json
+│   │   │   └── vocab.txt
+│   │   ├── train
+│   │   │   ├── data-00000-of-00001.arrow
+│   │   │   ├── dataset_info.json
+│   │   │   └── state.json
+│   │   ├── train.csv
+│   │   ├── val
+│   │   │   ├── data-00000-of-00001.arrow
+│   │   │   ├── dataset_info.json
+│   │   │   └── state.json
+│   │   └── val.csv
+│   ├── raw
+│   │   ├── PII-Masking-43K.clean.csv
+│   │   └── PII-Masking-43K.csv
+│   └── statistics
+│       ├── data_analysis.json
+│       ├── label_mappings.json
+│       └── preprocessing_summary.json
+├── fix_evaluation.sh
+├── fix_final.sh
+├── fix_imports.sh
+├── fix_model.sh
+├── fix_tree_map.sh
+├── __init__.py
+├── newprojectstructure.txt
+├── outputs
+│   ├── evaluation
+│   │   └── minimal_epsilon_8.0
+│   │       ├── evaluation_report.md
+│   │       ├── privacy_tradeoff_epsilon_8.0.png
+│   │       └── training_curves_epsilon_8.0.png
+│   ├── logs
+│   ├── models
+│   │   ├── distilbert_epsilon_8.0
+│   │   └── minimal_epsilon_8.0
+│   │       ├── checkpoint.pkl
+│   │       └── history.json
+│   ├── plots
+│   │   └── distilbert_epsilon_8.0
+│   └── results
+│       ├── baseline_summary.json
+│       ├── baseline_test_results.json
+│       ├── baseline_train_results.json
+│       └── baseline_val_results.json
+├── projectPlan.md
+├── README.md
+├── requirements.txt
+├── run_all_dp.sh
+├── run_baseline.sh
+├── run_dp_training.sh
+├── run_epsilon_8_fixed.sh
+├── run_epsilon_8.sh
+├── run_minimal.sh
+├── RunningDP.sh
+├── run_preprocess.sh
+├── setup_env.sh
+├── src
+│   ├── baseline
+│   │   ├── __init__.py
+│   │   └── template_baseline.py
+│   ├── data
+│   │   ├── __init__.py
+│   │   └── preprocess.py
+│   ├── evaluation
+│   │   ├── evaluate_dp_model.py
+│   │   ├── __init__.py
+│   │   └── plot_utils.py
+│   ├── __init__.py
+│   ├── models
+│   │   ├── distilbert_dp.py
+│   │   ├── distilbert_dp.py.backup
+│   │   ├── distilbert_dp.py.backup2
+│   │   ├── __init__.py
+│   │   ├── minimal_dp_model.py
+│   │   └── __pycache__
+│   │       ├── distilbert_dp.cpython-310.pyc
+│   │       ├── __init__.cpython-310.pyc
+│   │       └── minimal_dp_model.cpython-310.pyc
+│   ├── __pycache__
+│   │   └── __init__.cpython-310.pyc
+│   └── training
+│       ├── __init__.py
+│       ├── minimal_train.py
+│       ├── __pycache__
+│       │   ├── __init__.cpython-310.pyc
+│       │   └── train_dp.cpython-310.pyc
+│       ├── train_dp_proper.py
+│       └── train_dp.py
+├── temp.sh
+├── test_evaluation.sh
+├── test_fix.py
+├── test_import.py
+├── test_imports.py
+├── train_all_epsilons_proper.sh
+├── train_all_epsilons.sh
+├── train_single.sh
+└── verify_fixes.sh
+
+31 directories, 93 files
