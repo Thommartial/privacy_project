@@ -1,0 +1,13 @@
+{
+  "id": "DOC_025",
+  "type": "support",
+  "pii_count": 1,
+  "pii_entities": [
+    {
+      "entity": "EMAIL",
+      "value": "lisa.lee@business.org",
+      "start": 50,
+      "end": 71
+    }
+  ]
+}

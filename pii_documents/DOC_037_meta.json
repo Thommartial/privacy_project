@@ -1,0 +1,13 @@
+{
+  "id": "DOC_037",
+  "type": "report",
+  "pii_count": 1,
+  "pii_entities": [
+    {
+      "entity": "PHONE",
+      "value": "917-719-3391",
+      "start": 582,
+      "end": 594
+    }
+  ]
+}

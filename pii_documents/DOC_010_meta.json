@@ -1,0 +1,13 @@
+{
+  "id": "DOC_010",
+  "type": "meeting",
+  "pii_count": 1,
+  "pii_entities": [
+    {
+      "entity": "SSN",
+      "value": "354651011",
+      "start": 346,
+      "end": 355
+    }
+  ]
+}

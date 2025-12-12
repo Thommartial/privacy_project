@@ -24,7 +24,7 @@
     - ε (privacy budget): 8.0
     - δ: 1e-05
     - Training samples: 2800
-    - Epochs trained: 15
+    - Epochs trained: 10
     
     FILES SAVED:
     - Model parameters: outputs/models/final_epsilon_8.0/best_params.pkl

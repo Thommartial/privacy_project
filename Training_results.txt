@@ -1,3 +1,37 @@
+#!/bin/bash
+# fix_final_error.sh - Fix the matplotlib formatting error
+
+echo "🔧 Fixing matplotlib formatting errors..."
+echo "="*60
+
+# Fix the problematic format strings in evaluate_dp_model.py
+python -c "
+import re
+
+with open('src/evaluation/evaluate_dp_model.py', 'r') as f:
+    content = f.read()
+
+# Fix all color-marker format strings
+fixes = [
+    (\"'orange-o'\", \"'orange', marker='o'\"),
+    (\"'purple-s'\", \"'purple', marker='s'\"),
+    (\"'green-o'\", \"'green', marker='o'\"),
+    (\"'blue-o'\", \"'blue', marker='o'\"),
+    (\"'red-s'\", \"'red', marker='s'\"),
+    (\"'brown-o'\", \"'brown', marker='o'\")
+]
+
+for old, new in fixes:
+    content = content.replace(old, new)
+
+with open('src/evaluation/evaluate_dp_model.py', 'w') as f:
+    f.write(content)
+
+print('✅ Fixed all matplotlib format strings')
+"
+
+# Now generate the comparison plot manually
+cat > generate_final_plot.py << 'EOF'
 #!/usr/bin/env python3
 """
 Generate final privacy-accuracy tradeoff plot from your results.
@@ -79,16 +113,16 @@ ax4.axis('off')
 summary_text = f"""
 RESULTS SUMMARY:
 
-Baseline (Regex Model):
+Baseline (always non-PII):
   Accuracy: {baseline:.4f}
 
 DP Models:
-ε=0.5:  Acc={accuracies[0]:.4f}, F1={f1_scores[0]:.4f}, Δ={improvements[0]:+.4f}
-ε=1.0:  Acc={accuracies[1]:.4f}, F1={f1_scores[1]:.4f}, Δ={improvements[1]:+.4f}
-ε=2.0:  Acc={accuracies[2]:.4f}, F1={f1_scores[2]:.4f}, Δ={improvements[2]:+.4f}
-ε=3.0:  Acc={accuracies[3]:.4f}, F1={f1_scores[3]:.4f}, Δ={improvements[3]:+.4f}
-ε=5.0:  Acc={accuracies[4]:.4f}, F1={f1_scores[4]:.4f}, Δ={improvements[4]:+.4f}
-ε=8.5:  Acc={accuracies[5]:.4f}, F1={f1_scores[5]:.4f}, Δ={improvements[5]:+.4f}
+ε=8.0:  Acc={accuracies[0]:.4f}, F1={f1_scores[0]:.4f}, Δ={improvements[0]:+.4f}
+ε=5.0:  Acc={accuracies[1]:.4f}, F1={f1_scores[1]:.4f}, Δ={improvements[1]:+.4f}
+ε=3.0:  Acc={accuracies[2]:.4f}, F1={f1_scores[2]:.4f}, Δ={improvements[2]:+.4f}
+ε=2.0:  Acc={accuracies[3]:.4f}, F1={f1_scores[3]:.4f}, Δ={improvements[3]:+.4f}
+ε=1.0:  Acc={accuracies[4]:.4f}, F1={f1_scores[4]:.4f}, Δ={improvements[4]:+.4f}
+ε=0.5:  Acc={accuracies[5]:.4f}, F1={f1_scores[5]:.4f}, Δ={improvements[5]:+.4f}
 
 Key Findings:
 • Clear privacy-accuracy tradeoff
@@ -200,3 +234,7 @@ print("   2. ✓ Clear privacy-accuracy tradeoff")
 print("   3. ✓ Comprehensive evaluation")
 print("   4. ✓ Final results and visualizations")
 print("\n📁 All results in: outputs/final_results/")
+EOF
+
+chmod +x generate_final_plot.py
+python generate_final_plot.py

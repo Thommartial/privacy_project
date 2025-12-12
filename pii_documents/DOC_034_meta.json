@@ -1,0 +1,13 @@
+{
+  "id": "DOC_034",
+  "type": "letter",
+  "pii_count": 1,
+  "pii_entities": [
+    {
+      "entity": "IP_ADDRESS",
+      "value": "135.99.26.139",
+      "start": 536,
+      "end": 549
+    }
+  ]
+}

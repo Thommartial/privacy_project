@@ -1,0 +1,13 @@
+{
+  "id": "DOC_047",
+  "type": "email",
+  "pii_count": 1,
+  "pii_entities": [
+    {
+      "entity": "PHONE",
+      "value": "2708370213",
+      "start": 475,
+      "end": 485
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "DOC_014",
+  "type": "medical",
+  "pii_count": 1,
+  "pii_entities": [
+    {
+      "entity": "BITCOIN_ADDRESS",
+      "value": "19ou2AYmhx3k147FG2dWRf5X5KKqteaCtQ8",
+      "start": 159,
+      "end": 194
+    }
+  ]
+}

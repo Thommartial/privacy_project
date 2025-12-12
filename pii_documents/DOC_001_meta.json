@@ -1,0 +1,19 @@
+{
+  "id": "DOC_001",
+  "type": "meeting",
+  "pii_count": 2,
+  "pii_entities": [
+    {
+      "entity": "SSN",
+      "value": "211187769",
+      "start": 281,
+      "end": 290
+    },
+    {
+      "entity": "BITCOIN_ADDRESS",
+      "value": "1E9TPgzJ7AXXQ2y3xc4USWqFNjsew7P7yz",
+      "start": 178,
+      "end": 212
+    }
+  ]
+}

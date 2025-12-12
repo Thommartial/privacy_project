@@ -1,0 +1,19 @@
+{
+  "id": "DOC_032",
+  "type": "email",
+  "pii_count": 2,
+  "pii_entities": [
+    {
+      "entity": "EMAIL",
+      "value": "ctaylor@outlook.com",
+      "start": 6,
+      "end": 25
+    },
+    {
+      "entity": "EMAIL",
+      "value": "mary.thompson@gmail.com",
+      "start": 30,
+      "end": 53
+    }
+  ]
+}

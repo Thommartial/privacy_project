@@ -1,0 +1,13 @@
+{
+  "id": "DOC_008",
+  "type": "meeting",
+  "pii_count": 1,
+  "pii_entities": [
+    {
+      "entity": "PHONE",
+      "value": "9182718424",
+      "start": 365,
+      "end": 375
+    }
+  ]
+}

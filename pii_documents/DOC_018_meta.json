@@ -1,0 +1,19 @@
+{
+  "id": "DOC_018",
+  "type": "letter",
+  "pii_count": 2,
+  "pii_entities": [
+    {
+      "entity": "PHONE",
+      "value": "3383896714",
+      "start": 330,
+      "end": 340
+    },
+    {
+      "entity": "CREDIT_CARD",
+      "value": "6767993383896714",
+      "start": 324,
+      "end": 340
+    }
+  ]
+}

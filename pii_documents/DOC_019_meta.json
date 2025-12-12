@@ -1,0 +1,19 @@
+{
+  "id": "DOC_019",
+  "type": "email",
+  "pii_count": 2,
+  "pii_entities": [
+    {
+      "entity": "EMAIL",
+      "value": "awilliams@company.com",
+      "start": 6,
+      "end": 27
+    },
+    {
+      "entity": "EMAIL",
+      "value": "michael.lee@university.edu",
+      "start": 32,
+      "end": 58
+    }
+  ]
+}

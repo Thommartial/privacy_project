@@ -1,0 +1,16 @@
+Patient: Dr. Susan Christopher Thompson
+DOB: 1956-05-10
+MRN: MRN748551
+Date: 2017-05-05
+
+Chief Complaint: Fatigue
+
+Asses
+Alter
+Department: Legalnate phone: +1 312 598 8674sment: Muscle strain
+
+Plan: Follow up in 2 w
+Website: http://support.website.ioeeks
+
+Quality assurance testing has identified several areas for improvement in the current release cycle.
+Technical documentation has been updated to reflect the latest changes in the software architecture.

@@ -1,0 +1,500 @@
+ 1430      """
+ 1431      # Load DistilBERT configuration
+ 1432      config = DistilBertConfig.from_pretrained(
+ 1433          model_name,
+ 1434          num_labels=num_labels,
+ 1435      )
+ 1436      
+ 1437      # Set dropout - FIXED: set dropout attribute directly
+ 1438      setattr(config, 'dropout', dropout)
+ 1439      setattr(config, 'attention_dropout', dropout)
+ 1440      
+ 1441      # Create model
+ 1442      model = PIIDetector(config)
+ 1443      
+ 1444      # Load pretrained weights
+ 1445      model.distilbert = DistilBertModel.from_pretrained(model_name, config=config)
+ 1446      
+ 1447      logger.info(f"Created PIIDetector with {num_labels} labels")
+ 1448      logger.info(f"Model: {model_name}, Dropout: {dropout}")
+ 1449      
+ 1450      return model
+ 1451  if __name__ == "__main__":
+ 1452      # Test the model
+ 1453      import sys
+ 1454      sys.path.append(".")
+ 1455      logging.basicConfig(level=logging.INFO)
+ 1456      
+ 1457      print("Testing PIIDetector...")
+ 1458      
+ 1459      # Create a test model
+ 1460      num_labels = 10
+ 1461      model = create_pii_detector(num_labels=num_labels)
+ 1462      
+ 1463      # Test parameter counting
+ 1464      params = model.count_parameters()
+ 1465      print(f"Parameter counts: {params}")
+ 1466      
+ 1467      # Test forward pass
+ 1468      batch_size = 2
+ 1469      seq_len = 32
+ 1470      
+ 1471      # Create dummy inputs
+ 1472      input_ids = torch.randint(0, 1000, (batch_size, seq_len))
+ 1473      attention_mask = torch.ones((batch_size, seq_len))
+ 1474      labels = torch.randint(0, num_labels, (batch_size, seq_len))
+ 1475      
+ 1476      # Test with labels (training mode)
+ 1477      outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+ 1478      print(f"With labels - Loss: {outputs['loss']:.4f}, Logits shape: {outputs['logits'].shape}")
+ 1479      
+ 1480      # Test without labels (inference mode)
+ 1481      outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+ 1482      print(f"Without labels - Logits shape: {outputs['logits'].shape}")
+ 1483      
+ 1484      # Test predict method
+ 1485      predictions = model.predict(input_ids=input_ids, attention_mask=attention_mask)
+ 1486      print(f"Predictions shape: {predictions['predictions'].shape}")
+ 1487      
+ 1488      print("\n✅ Model tests passed!")
+ 1489  DETECTOR_EOF
+ 1490  # Now create a simple test to verify everything works
+ 1491  cat > final_test.py << 'EOF'
+ 1492  #!/usr/bin/env python
+ 1493  """
+ 1494  Final test before running training.
+ 1495  """
+ 1496  import sys
+ 1497  from pathlib import Path
+ 1498  sys.path.append(str(Path(__file__).parent))
+ 1499  print("=" * 60)
+ 1500  print("FINAL TEST BEFORE TRAINING")
+ 1501  print("=" * 60)
+ 1502  # Test 1: Basic imports
+ 1503  print("\n1. Testing basic imports...")
+ 1504  try:
+ 1505      import torch
+ 1506      print(f"✅ PyTorch: {torch.__version__}")
+ 1507  except ImportError as e:
+ 1508      print(f"❌ PyTorch: {e}")
+ 1509      sys.exit(1)
+ 1510  try:
+ 1511      import transformers
+ 1512      print(f"✅ Transformers: {transformers.__version__}")
+ 1513  except ImportError as e:
+ 1514      print(f"❌ Transformers: {e}")
+ 1515      sys.exit(1)
+ 1516  # Test 2: Model creation
+ 1517  print("\n2. Testing model creation...")
+ 1518  try:
+ 1519      from src.models.pii_detector import create_pii_detector
+ 1520      model = create_pii_detector(num_labels=5)
+ 1521      print(f"✅ Model created with {sum(p.numel() for p in model.parameters()):,} parameters")
+ 1522  except Exception as e:
+ 1523      print(f"❌ Model creation failed: {e}")
+ 1524      import traceback
+ 1525      traceback.print_exc()
+ 1526      sys.exit(1)
+ 1527  # Test 3: Logger
+ 1528  print("\n3. Testing logger...")
+ 1529  try:
+ 1530      from src.utils.logger import setup_logger
+ 1531      logger = setup_logger("test_logger", console=False)
+ 1532      logger.info("Test log message")
+ 1533      print("✅ Logger works")
+ 1534  except Exception as e:
+ 1535      print(f"❌ Logger failed: {e}")
+ 1536      import traceback
+ 1537      traceback.print_exc()
+ 1538  # Test 4: Trainer
+ 1539  print("\n4. Testing trainer...")
+ 1540  try:
+ 1541      from src.training.trainer import BaselineTrainer, create_optimizer
+ 1542      print("✅ Trainer imports work")
+ 1543      
+ 1544      # Create dummy data loader
+ 1545      from torch.utils.data import Dataset, DataLoader
+ 1546      import torch.nn as nn
+ 1547      
+ 1548      class TestModel(nn.Module):
+ 1549          def __init__(self):
+ 1550              super().__init__()
+ 1551              self.linear = nn.Linear(10, 5)
+ 1552          
+ 1553          def forward(self, input_ids, attention_mask=None, labels=None):
+ 1554              logits = self.linear(input_ids.float())
+ 1555              loss = None
+ 1556              if labels is not None:
+ 1557                  loss = nn.functional.cross_entropy(logits.view(-1, 5), labels.view(-1))
+ 1558              return type('obj', (object,), {'loss': loss, 'logits': logits})()
+ 1559      
+ 1560      class DummyData(Dataset):
+ 1561          def __len__(self): return 10
+ 1562          def __getitem__(self, idx):
+ 1563              return {
+ 1564                  'input_ids': torch.randn(32, 10),
+ 1565                  'attention_mask': torch.ones(32),
+ 1566                  'labels': torch.randint(0, 5, (32,))
+ 1567              }
+ 1568      
+ 1569      test_model = TestModel()
+ 1570      train_loader = DataLoader(DummyData(), batch_size=2)
+ 1571      val_loader = DataLoader(DummyData(), batch_size=2)
+ 1572      
+ 1573      config = {'training': {'learning_rate': 5e-5}}
+ 1574      optimizer = create_optimizer(test_model, config)
+ 1575      
+ 1576      trainer = BaselineTrainer(
+ 1577          model=test_model,
+ 1578          train_loader=train_loader,
+ 1579          val_loader=val_loader,
+ 1580          optimizer=optimizer,
+ 1581          num_epochs=1,
+ 1582          label_list=['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG']
+ 1583      )
+ 1584      
+ 1585      print("✅ Trainer instantiated successfully")
+ 1586      
+ 1587  except Exception as e:
+ 1588      print(f"⚠️  Trainer test warning (might still work): {e}")
+ 1589  print("\n" + "=" * 60)
+ 1590  print("READY FOR TRAINING!")
+ 1591  print("=" * 60)
+ 1592  print("\nRun baseline training with:")
+ 1593  print("  bash scripts/03_train_baseline.sh")
+ 1594  print("\nOr for a quick test (2 epochs):")
+ 1595  print("  python src/main_train_baseline.py --epochs 2 --batch-size 4")
+ 1596  EOF
+ 1597  python final_test.py
+ 1598  # Now run the training
+ 1599  echo "Running baseline training..."
+ 1600  bash scripts/03_train_baseline.sh
+ 1601  python src/main_train_baseline.py --epochs 2 --batch-size 4
+ 1602  # This fixes the specific error
+ 1603  sed -i 's/loss = outputs\.loss/loss = outputs["loss"]/g' src/training/trainer.py
+ 1604  bash scripts/03_train_baseline.sh
+ 1605  # Fix the trainer.py with one command
+ 1606  sed -i "s/logits = outputs\.logits/if isinstance(outputs, dict):\n                    loss = outputs.get('loss')\n                    logits = outputs.get('logits')\n                else:\n                    loss = outputs.loss\n                    logits = outputs.logits/" src/training/trainer.py
+ 1607  # Resume training from checkpoint
+ 1608  python src/main_train_baseline.py --epochs 3 --batch-size 8 --resume models/baseline/checkpoints/best_model_epoch1.pt
+ 1609  touch fix.sh
+ 1610  ./fix.sh
+ 1611  # First, check what checkpoints exist
+ 1612  ls -la models/baseline/checkpoints/
+ 1613  # Also check in the root models directory
+ 1614  ls -la models/baseline/
+ 1615  # Check for any .pt files in the baseline directory
+ 1616  find models/baseline/ -name "*.pt" -type f
+ 1617  # Check what was actually saved during training
+ 1618  ls -la models/baseline/
+ 1619  # Check what's in the logs
+ 1620  ls -la models/baseline/logs/
+ 1621  # Check the tensorboard directory
+ 1622  ls -la models/baseline/tensorboard/
+ 1623  # Let's start fresh with proper checkpointing
+ 1624  # First, clean up empty directories
+ 1625  rm -rf models/baseline/checkpoints/* 2>/dev/null
+ 1626  # Create a new training run with checkpointing enabled
+ 1627  echo "Starting fresh training with checkpointing..."
+ 1628  # Run training for just 1 epoch to test
+ 1629  python src/main_train_baseline.py --epochs 1 --batch-size 8
+ 1630  # If that works, check for checkpoint
+ 1631  if [ -f "models/baseline/checkpoints/best_model_epoch1.pt" ]; then     echo "✅ Checkpoint created! Now continue training:";     echo "python src/main_train_baseline.py --resume models/baseline/checkpoints/best_model_epoch1.pt --epochs 2 --start-epoch 1"; else     echo "❌ No checkpoint created. Let's debug...";     
+ 1632      python src/main_train_baseline.py --epochs 1 --batch-size 4 --debug 2>&1 | tail -50;     
+ 1633      echo "Checking trainer save logic...";     grep -n "checkpoint_path" src/training/trainer.py | head -5; fi
+ 1634  ./fix.sh
+ 1635  # Remove the bad import syntax
+ 1636  sed -i "s/'save_time': str(import datetime; datetime.datetime.now()),/'save_time': str(datetime.datetime.now()),/" src/models/model_utils.py
+ 1637  # Add import at top if missing
+ 1638  if ! grep -q "import datetime" src/models/model_utils.py; then     sed -i '1s/^/import datetime\n/' src/models/model_utils.py; fi
+ 1639  # Now run resume
+ 1640  python src/main_train_baseline.py --resume models/baseline/checkpoints/best_model_epoch1.pt --epochs 2 --start-epoch 1
+ 1641  ./fix.sh
+ 1642  ./create_phase4_files.sh
+ 1643  pip install opacus
+ 1644  python test_dp_setup.py
+ 1645  python src/main_train_dp.py --epsilon 8.0 --epochs 1 --batch-size 16
+ 1646  ./temp.sh
+ 1647  ./fix_dp_error.sh
+ 1648  python src/main_train_dp.py --epsilon 8.0 --epochs 1 --batch-size 16
+ 1649  ./temp.sh
+ 1650  ./fix_imports.sh
+ 1651  # Make sure the script is executable
+ 1652  chmod +x scripts/04_train_dp_models.sh
+ 1653  # Run the DP training script
+ 1654  bash scripts/04_train_dp_models.sh
+ 1655  # Edit the original script to skip the prompt
+ 1656  sed -i 's/read -p "Use optimized settings.*//' scripts/04_train_dp_models.sh
+ 1657  sed -i 's/if \[\[ ! \$REPLY =~ \^\[Yy\]\$ \]\]; then/if false; then/' scripts/04_train_dp_models.sh
+ 1658  # Add automatic optimization based on your actual hardware
+ 1659  sed -i '/BATCH_SIZE=16/a \    # Auto-detect hardware\n    CPU_CORES=$(nproc)\n    TOTAL_RAM_GB=$(free -g | awk '\''/^Mem:/ {print $2}'\'')\n    \n    # Optimize based on actual hardware\n    if [ $CPU_CORES -ge 8 ] && [ $TOTAL_RAM_GB -ge 30 ]; then\n        BATCH_SIZE=24\n        GRAD_ACCUM=2\n        NUM_WORKERS=3\n        echo "✅ Using aggressive optimization for 8-core, ${TOTAL_RAM_GB}GB system"\n    fi' scripts/04_train_dp_models.sh
+ 1660  bash scripts/04_train_dp_models.sh
+ 1661  ./temp.sh
+ 1662  ./fix_opacus_version.sh
+ 1663  python src/main_train_dp.py --epsilon 8.0 --epochs 1 --batch-size 8 --debug
+ 1664  ./temp.sh
+ 1665  ./fix_opacus_api.sh
+ 1666  python src/main_train_dp.py --epsilon 8.0 --epochs 1 --batch-size 8 --debug
+ 1667  ./temp.sh
+ 1668  ./final_working_fix.sh
+ 1669  python src/main_train_dp.py --epsilon 8.0 --epochs 1 --batch-size 8
+ 1670  ./temp.sh
+ 1671  python src/main_train_dp.py --epsilon 8.0 --epochs 2 --batch-size 8
+ 1672  ./temp.sh
+ 1673  bash scripts/04_train_dp_models.sh
+ 1674  ./temp.sh
+ 1675  bash scripts/04_train_dp_models.sh
+ 1676  ./temp.sh
+ 1677  bash scripts/04_train_dp_models.sh
+ 1678  ./temp.sh
+ 1679  bash scripts/04_train_dp_models_fast.sh
+ 1680  ./temp.sh
+ 1681  bash scripts/04_train_dp_models_fast.sh
+ 1682  tree > project_tree.txt 
+ 1683  scripts/04_train_dp_models_fast.sh
+ 1684  ./temp.sh
+ 1685  scripts/04_train_dp_models_fast.sh
+ 1686  ./temp.sh
+ 1687  scripts/04_train_dp_models_fast.sh
+ 1688  ./temp.sh
+ 1689  bash scripts/04_train_dp_models_fast.sh
+ 1690  ./temp.sh
+ 1691  bash scripts/04_train_dp_models_fast.sh
+ 1692  ./temp.sh
+ 1693  bash scripts/04_train_dp_models_fast.sh
+ 1694  ./temp.sh
+ 1695  bash scripts/04_train_dp_models_fast.sh 0.5
+ 1696  sed -n '1,400p' models/dp_models_fast/epsilon_0_5/train_run.log | sed -n '1,200p'
+ 1697  ls -l models/dp_models_fast/epsilon_0_5
+ 1698  jq -C . models/dp_models_fast/epsilon_0_5/training_results.json 2>/dev/null || true
+ 1699  nl -ba src/training/dp_trainer.py | sed -n '1,420p' | sed -n '1,220p'
+ 1700  # then search for validate/evaluate functions
+ 1701  grep -nE "def (validate|evaluate|eval)_?" -n src/training/dp_trainer.py || true
+ 1702  ./temp.sh
+ 1703  python3 src/main_train_dp.py --subset-size 500 --epochs 1 --epsilon 0.5 --data-dir data/processed --output-dir models/dp_models_fast/epsilon_0_5
+ 1704  # 1) Activate your env (if not already)
+ 1705  conda activate cis6530
+ 1706  # 2) Reinstall CPU-only PyTorch and related packages (replaces CUDA wheel)
+ 1707  pip install --upgrade --force-reinstall --no-cache-dir   torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+ 1708  # 3) Reinstall Opacus, Transformers, Datasets to match
+ 1709  pip install --upgrade --force-reinstall --no-cache-dir opacus transformers datasets
+ 1710  ./temp.sh
+ 1711  export TRANSFORMERS_NO_TF=1
+ 1712  export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 TORCH_NUM_THREADS=1
+ 1713  python3 src/main_train_dp.py --subset-size 100 --epochs 1 --epsilon 0.5 --data-dir data/processed --output-dir models/dp_models_fast/epsilon_0_5 2>&1 | tee /tmp/train_no_tf.log
+ 1714  conda create -n dp_cpu python=3.10 -y
+ 1715  conda activate dp_cpu
+ 1716  pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+ 1717  pip install --no-cache-dir opacus transformers datasets
+ 1718  ./temp.sh
+ 1719  cd src && bash ../scripts/diagnose_dptrainer_import.sh
+ 1720  tree > project_tree.txt
+ 1721  ./temp.sh
+ 1722  cd ..
+ 1723  ./temp.sh
+ 1724  conda activate cis6530
+ 1725  ls -la models/dp_models_sequential/
+ 1726  conda activate cis6530
+ 1727  bash scripts/monitor_dp_progress.sh
+ 1728  touch setup_env.sh
+ 1729  chmod +x setup_env.sh
+ 1730  ./setup_env.sh
+ 1731  conda activate pii-jax
+ 1732  tree > newprojectstructure.txt
+ 1733  touch create_structure.sh
+ 1734  chmod +x create_structure.sh
+ 1735  ./create_structure.sh
+ 1736  touch src/data/preprocess.py
+ 1737  chmod +x src/data/preprocess.py
+ 1738  gedit src/data/preprocess.py
+ 1739  sudo apt  install gedit
+ 1740  gedit src/data/preprocess.py
+ 1741  touch run_preprocess.sh
+ 1742  chmod +x run_preprocess.sh
+ 1743  gedit run_preprocess.sh
+ 1744  ./run_preprocess.sh
+ 1745  touch src/baseline/template_baseline.py
+ 1746  chmod +x src/baseline/template_baseline.py
+ 1747  gedit src/baseline/template_baseline.py
+ 1748  touch run_baseline.sh
+ 1749  chmod +x run_baseline.sh
+ 1750  gedit run_baseline.sh
+ 1751  ./run_baseline.sh
+ 1752  touch run_dp_training.sh
+ 1753  chmod +x run_dp_training.sh
+ 1754  gedit run_dp_training.sh
+ 1755  gedit src/models/distilbert_dp.py
+ 1756  chmod +x  src/models/distilbert_dp.py
+ 1757  gedit src/training/train_dp.py
+ 1758  chmod +x src/training/train_dp.py
+ 1759  gedit src/evaluation/plot_utils.py
+ 1760  touch src/evaluation/plot_utils.py
+ 1761  gedit src/evaluation/plot_utils.py
+ 1762  gedit run_all_dp.sh
+ 1763  chmod +x run_all_dp.sh
+ 1764  ./temp.sh
+ 1765  ./verify_fixes.sh
+ 1766  gedit run_epsilon_8.sh
+ 1767  chmod +x run_epsilon_8.sh
+ 1768  bash run_epsilon_8.sh
+ 1769  gedit fix_imports.sh
+ 1770  chmod +x fix_imports.sh
+ 1771  ./fix_imports.sh
+ 1772  python test_imports.py
+ 1773  ./run_epsilon_8.sh
+ 1774  gedit fix_model.sh
+ 1775  chmod +x fix_model.sh
+ 1776  bash fix_model.sh
+ 1777  ./run_epsilon_8.sh
+ 1778  touch fix_final.sh
+ 1779  chmod +x  fix_final.sh
+ 1780  gedit fix_final.sh
+ 1781  bash fix_final.sh
+ 1782  ./run_epsilon_8_fixed.sh
+ 1783  bash temp.sh
+ 1784  ./run_minimal.sh
+ 1785  bash temp.sh
+ 1786  ./run_minimal.sh
+ 1787  gedit fix_tree_map.sh
+ 1788  chmod +x fix_tree_map.sh
+ 1789  ./fix_tree_map.sh
+ 1790  ./run_minimal.sh
+ 1791  gedit create_pipeline.sh
+ 1792  chmod +x create_pipeline.sh
+ 1793  ./create_pipeline.sh
+ 1794  python src/evaluation/evaluate_dp_model.py --model_dir outputs/models/minimal_epsilon_8.0
+ 1795  gedit fix_evaluation.sh
+ 1796  chmod +x fix_evaluation.sh
+ 1797  ./fix_evaluation.sh
+ 1798  ./test_evaluation.sh
+ 1799  python src/training/train_dp_proper.py --epsilon 8.0 --epochs 3 --batch_size 8 --max_samples 3000
+ 1800  tree > newprojectstructure.txt
+ 1801  gedit fix_proper_model.sh
+ 1802  chmod +x fix_proper_model.sh
+ 1803  ./fix_proper_model.sh
+ 1804  python src/training/train_dp_proper.py --epsilon 8.0 --epochs 3 --batch_size 16 --max_samples 3000
+ 1805  gedit fix_dropout_error.sh
+ 1806  chmod +x fix_dropout_error.sh
+ 1807  ./fix_dropout_error.sh
+ 1808  python src/training/train_dp_proper.py --epsilon 8.0 --epochs 3 --batch_size 16 --max_samples 3000
+ 1809  touch fix_tracer_error.sh
+ 1810  gedit fix_tracer_error.sh
+ 1811  chmod +x fix_tracer_error.sh
+ 1812  ./fix_tracer_error.sh
+ 1813  gedit fix_tree_map.sh
+ 1814  chmod +x fix_tree_map.sh
+ 1815  ./fix_tree_map.sh
+ 1816  python src/training/train_dp_proper.py --epsilon 8.0 --epochs 3 --batch_size 16 --max_samples 3000
+ 1817  touch fix_pickle_error.sh
+ 1818  gedit fix_pickle_error.sh
+ 1819  chmod +x fix_pickle_error.sh
+ 1820  ./fix_pickle_error.sh
+ 1821  python src/training/train_dp_proper.py --epsilon 8.0 --epochs 3 --batch_size 16 --max_samples 5000
+ 1822  python src/training/train_dp_proper.py --epsilon 8.0 --epochs 10 --batch_size 16 --max_samples 5000
+ 1823  gedit fix_training_issues.sh
+ 1824  bash fix_training_issues.sh
+ 1825  python src/training/train_dp_improved.py --epsilon 8.0 --epochs 10 --batch_size 32 --max_samples 5000
+ 1826  touch fix_batchnorm_error.sh
+ 1827  gedit fix_batchnorm_error.sh
+ 1828  chmod +x  fix_batchnorm_error.sh
+ 1829  bash fix_batchnorm_error.sh
+ 1830  python src/training/train_dp_simple_effective.py --epsilon 8.0 --epochs 10 --learning_rate 0.0001 --max_samples 5000
+ 1831  gedit fix_all_errors_final.sh
+ 1832  chmod +x fix_all_errors_final.sh
+ 1833  bash fix_all_errors_final.sh
+ 1834  ./temp.sh
+ 1835  python src/training/train_dp_final_working.py --epsilon 8.0 --epochs 15 --learning_rate 0.0005 --max_samples 5000
+ 1836  ./temp.sh
+ 1837  ./temp.sh
+ 1838  ./temp.sh
+ 1839  python src/evaluation/evaluate_dp_model.py --epsilon 8.0
+ 1840  ./temp.sh
+ 1841  python src/evaluation/evaluate_dp_model.py --epsilon 8.0
+ 1842  for eps in 5.0 3.0 2.0 1.0 0.5; do     echo "Training ε=$eps...";     python src/training/train_dp_final_working.py --epsilon $eps --epochs 10 --max_samples 3000; done
+ 1843  for eps in 5.0 3.0 2.0 1.0 0.5; do     echo "Training ε=$eps...";     python src/training/train_dp_final_working.py --epsilon $eps --epochs 10 --max_samples 5000; done
+ 1844  python src/evaluation/evaluate_dp_model.py --compare_all
+ 1845  ./temp.sh
+ 1846  python redact_text.py
+ 1847  # Create a test file
+ 1848  cat > test_document.txt << 'EOF'
+ 1849  Patient Record:
+ 1850  Name: John Smith
+ 1851  Email: john.smith@hospital.com
+ 1852  Phone: (555) 123-4567
+ 1853  SSN: 123-45-6789
+ 1854  Address: 123 Medical Center Dr, Boston, MA
+ 1855  Date of Birth: 05/15/1980
+ 1856  Credit Card: 4111-1111-1111-1111
+ 1857  IP Address: 192.168.1.100
+ 1858  EOF
+ 1859  # Redact it
+ 1860  python src/redaction/redaction_pipeline.py --input test_document.txt --style category_specific
+ 1861  touch cis6550_Final_Project_Report.md
+ 1862  gedit cis6550_Final_Project_Report.md
+ 1863  activate cis6530
+ 1864  ./temp.sh
+ 1865  conda activate cis6530
+ 1866  ./temp.sh
+ 1867  python test_dp_small.py
+ 1868  bash scripts/04_train_dp_models_fast.sh
+ 1869  bash scripts/run_dp_all_epsilons_safe.sh
+ 1870  bash scripts/run_dp_all_epsilons_safe.sh 8
+ 1871  bash scripts/04_train_dp_models.sh
+ 1872  ./temp.sh
+ 1873  grep -r 'distildistilbert\|bert-base-uncased' src/ config/
+ 1874  ./temp.sh
+ 1875  bash scripts/04_train_dp_models.sh
+ 1876  which conda
+ 1877  tree newprojectstructure.txt
+ 1878  tree > newprojectstructure.txt
+ 1879  # 1. Add the GitHub CLI key
+ 1880  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
+ 1881  # 2. Add the GitHub CLI repository to your sources list
+ 1882  sudo apt-add-repository https://cli.github.com/packages
+ 1883  # 3. Update the package list and install gh
+ 1884  sudo apt update
+ 1885  sudo apt install gh
+ 1886  gh auth login
+ 1887  cd ..
+ 1888  ls
+ 1889  cd dpajax
+ 1890  cd dpjax
+ 1891  # Initialize Git
+ 1892  git init
+ 1893  # Stage and Commit your files
+ 1894  git add .
+ 1895  git commit -m "Working Project Files"
+ 1896  git config --global user.email "2737181492@qq.com"
+ 1897  git config --global user.name "Thommartial"
+ 1898  git add .
+ 1899  git commit -m "Working Project Files"
+ 1900  git remote add origin https://github.com/Thommartial/privacy_project.git
+ 1901  git push -u origin main
+ 1902  git branch -M main
+ 1903  git push -u origin main
+ 1904  sudo apt-get update && sudo snap install ksnip
+ 1905  sudo snap install ksnip
+ 1906  sudo add-apt-repository ppa:dhor/myway
+ 1907  sudo apt update
+ 1908  sudo apt install ksnip
+ 1909  sudo apt install exfat-fuse exfatprogs
+ 1910  mount -t exfat /dev/sdb /mnt/usb
+ 1911  mount -t exfat /dev/sdb /home/Desktop
+ 1912  mount -t exfat /dev/sdb /home
+ 1913  sudo mount -t exfat /dev/sdb /home
+ 1914  lsblk -f 
+ 1915  conda env
+ 1916  conda list
+ 1917  conda env -list
+ 1918  conda env
+ 1919  conda env list
+ 1920  lsblk -f 
+ 1921  sudo fsck.exfat /dev/sdb1
+ 1922  sudo fsck.exfat /dev/sdb
+ 1923  sudo fdisk -l
+ 1924  touch exchange.txt
+ 1925  sudo systemctl restart open-vm-tools
+ 1926  systemctl daemon-reload
+ 1927  conda env list
+ 1928  conda activate pii-jax
+ 1929  history 500 > history.txt

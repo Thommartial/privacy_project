@@ -1,0 +1,19 @@
+{
+  "id": "DOC_011",
+  "type": "email",
+  "pii_count": 2,
+  "pii_entities": [
+    {
+      "entity": "PHONE",
+      "value": "415.682.4365",
+      "start": 510,
+      "end": 522
+    },
+    {
+      "entity": "BITCOIN_ADDRESS",
+      "value": "1F873xreFSRLxK3yV7QuMkdR9PBm8dTbBJ",
+      "start": 612,
+      "end": 646
+    }
+  ]
+}

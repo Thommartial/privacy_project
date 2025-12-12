@@ -1,0 +1,13 @@
+{
+  "id": "DOC_050",
+  "type": "medical",
+  "pii_count": 1,
+  "pii_entities": [
+    {
+      "entity": "PHONE",
+      "value": "8004225964",
+      "start": 289,
+      "end": 299
+    }
+  ]
+}

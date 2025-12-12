@@ -1,0 +1,13 @@
+{
+  "id": "DOC_023",
+  "type": "report",
+  "pii_count": 1,
+  "pii_entities": [
+    {
+      "entity": "IP_ADDRESS",
+      "value": "151.214.74.183",
+      "start": 132,
+      "end": 146
+    }
+  ]
+}

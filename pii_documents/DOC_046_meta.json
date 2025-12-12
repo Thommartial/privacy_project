@@ -1,0 +1,13 @@
+{
+  "id": "DOC_046",
+  "type": "medical",
+  "pii_count": 1,
+  "pii_entities": [
+    {
+      "entity": "PHONE",
+      "value": "818-996-8338",
+      "start": 105,
+      "end": 117
+    }
+  ]
+}

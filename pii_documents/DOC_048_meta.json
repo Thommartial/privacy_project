@@ -1,0 +1,19 @@
+{
+  "id": "DOC_048",
+  "type": "legal",
+  "pii_count": 2,
+  "pii_entities": [
+    {
+      "entity": "IP_ADDRESS",
+      "value": "28.47.224.51",
+      "start": 588,
+      "end": 600
+    },
+    {
+      "entity": "BITCOIN_ADDRESS",
+      "value": "14BgCHFYwpvzG8v7HAV4TCWx1kwwsoJgBA",
+      "start": 452,
+      "end": 486
+    }
+  ]
+}

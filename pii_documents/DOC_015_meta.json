@@ -1,0 +1,13 @@
+{
+  "id": "DOC_015",
+  "type": "meeting",
+  "pii_count": 1,
+  "pii_entities": [
+    {
+      "entity": "BITCOIN_ADDRESS",
+      "value": "16h5necwrdTDWspZQ6m97nUPQBrR3WjcaS",
+      "start": 257,
+      "end": 291
+    }
+  ]
+}

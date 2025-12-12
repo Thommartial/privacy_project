@@ -1,0 +1,25 @@
+{
+  "total_documents": 50,
+  "generation_date": "2025-12-11T17:32:47.450108",
+  "document_types": {
+    "meeting": 9,
+    "medical": 11,
+    "legal": 4,
+    "report": 6,
+    "financial": 4,
+    "letter": 7,
+    "email": 6,
+    "support": 3
+  },
+  "pii_statistics": {
+    "total_pii_entities": 29,
+    "pii_types": {
+      "SSN": 2,
+      "BITCOIN_ADDRESS": 5,
+      "PHONE": 11,
+      "EMAIL": 7,
+      "CREDIT_CARD": 1,
+      "IP_ADDRESS": 3
+    }
+  }
+}

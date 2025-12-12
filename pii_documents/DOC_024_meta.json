@@ -1,0 +1,13 @@
+{
+  "id": "DOC_024",
+  "type": "support",
+  "pii_count": 1,
+  "pii_entities": [
+    {
+      "entity": "EMAIL",
+      "value": "sarah_anderson74@company.com",
+      "start": 54,
+      "end": 82
+    }
+  ]
+}

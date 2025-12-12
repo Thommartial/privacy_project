@@ -1,7 +1,0 @@
-{
-  "model_class": "ProperDPModel",
-  "input_dim": 8,
-  "hidden_size": 256,
-  "num_classes": 2,
-  "dropout_rate": 0.3
-}
