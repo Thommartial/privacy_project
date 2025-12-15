@@ -152,11 +152,20 @@ python -m src.redaction.cli --input document.txt --epsilon 3.0
 ### Training a New Model
 
 ```bash
-# Train with default settings (ε=5.0)
-python src/training/train_dp_proper.py
+# Train all epsilon values
+for eps in 8.0 5.0 3.0 2.0 1.0 0.5; do
+    echo "Training ε=$eps..."
+python src/training/train_dp_final_working.py --epsilon $eps --epochs 10 --max_samples 5000
+done
 
-# Train with custom privacy budget
-python src/training/train_dp_proper.py --epsilon 3.0 --noise_multiplier 0.8
+# Evaluate all epsilon values
+for eps in 8.0 5.0 3.0 2.0 1.0 0.5; do
+    echo "Training ε=$eps..."
+    python src/evaluation/evaluate_dp_model.py --epsilon $eps 
+done
+
+# Compare all the models
+python src/evaluation/evaluate_dp_model.py --compare_all
 
 # Train baseline (no differential privacy)
 python src/training/train_baseline.py
